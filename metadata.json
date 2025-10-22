@@ -1,0 +1,7 @@
+{
+  "name": "NxtWave Voice Onboarding Agent",
+  "description": "An interactive voice agent to guide users through the NxtWave onboarding process, featuring real-time conversation and transcription powered by the Gemini API.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
