@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { OnboardingStage, AgentStatus } from './types';
 import { STAGES } from './constants';
 import { useVoiceAgent } from './hooks/useVoiceAgent';
@@ -11,7 +10,13 @@ import { SparklesIcon, ArrowLeftIcon, ArrowRightIcon } from './components/Icons'
 
 const App: React.FC = () => {
   const [currentStage, setCurrentStage] = useState<OnboardingStage>(OnboardingStage.GREETING);
-  const { agentStatus, transcripts, connect, disconnect, isConnected } = useVoiceAgent();
+  const { agentStatus, transcripts, connect, disconnect, isConnected } = useVoiceAgent({ setCurrentStage });
+  const [finalMessage, setFinalMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Reset the final message if the stage changes manually
+    setFinalMessage(null);
+  }, [currentStage]);
 
   const handleToggleConnection = () => {
     if (isConnected) {
@@ -27,6 +32,15 @@ const App: React.FC = () => {
 
   const handlePrevStage = () => {
     setCurrentStage(prev => (prev > 0 ? prev - 1 : prev));
+  };
+
+  const handlePaymentSelection = (option: 'EMI' | 'FULL_PAYMENT' | 'CREDIT_CARD') => {
+    if (isConnected) return; // Should be disabled, but as a safeguard
+    if (option === 'EMI') {
+      setCurrentStage(OnboardingStage.NBFC);
+    } else {
+      setFinalMessage('Got it. Our team will contact you within 24 hours to complete the process.');
+    }
   };
   
   const buttonText = useMemo(() => {
@@ -50,23 +64,36 @@ const App: React.FC = () => {
           
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex flex-col">
-              <StageContent stage={STAGES[currentStage]} />
-              <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-700/50">
-                <button
-                  onClick={handlePrevStage}
-                  disabled={currentStage === 0}
-                  className="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  <ArrowLeftIcon /> Prev
-                </button>
-                <button
-                  onClick={handleNextStage}
-                  disabled={currentStage === STAGES.length - 1}
-                  className="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  Next <ArrowRightIcon />
-                </button>
-              </div>
+              {finalMessage ? (
+                <div className="bg-gray-800/50 p-6 rounded-lg h-full flex flex-col justify-center">
+                  <h3 className="text-lg font-semibold text-blue-300">Thank You!</h3>
+                  <p className="text-gray-300 mt-2">{finalMessage}</p>
+                </div>
+              ) : (
+                <>
+                  <StageContent
+                    stage={STAGES[currentStage]}
+                    onPaymentSelect={handlePaymentSelection}
+                    isConnected={isConnected}
+                  />
+                  <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-700/50">
+                    <button
+                      onClick={handlePrevStage}
+                      disabled={currentStage === 0}
+                      className="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                      <ArrowLeftIcon /> Prev
+                    </button>
+                    <button
+                      onClick={handleNextStage}
+                      disabled={currentStage === STAGES.length - 1 || isConnected}
+                      className="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                      Next <ArrowRightIcon />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex flex-col justify-between bg-gray-900/50 rounded-lg p-4 h-[400px] border border-gray-700/50">
